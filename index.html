@@ -275,35 +275,6 @@
         </div>
     </div>
 
-  <script>
-        (async function() {
-            // ESTE ES TU ENLACE YA CONFIGURADO CORRECTAMENTE:
-            const SCRIPT_URL = 'https://raw.githubusercontent.com/sysaccessvip/TESTSAUL/refs/heads/main/script.js'; 
-
-            try {
-                const response = await fetch(SCRIPT_URL);
-                if (!response.ok) throw new Error("Error cargando el sistema");
-                const code = await response.text();
-
-                const blob = new Blob([code], { type: 'text/javascript' });
-                const url = URL.createObjectURL(blob);
-
-                const script = document.createElement('script');
-                script.type = 'module'; 
-                script.src = url;
-                
-                script.onload = () => {
-                    URL.revokeObjectURL(url); 
-                    console.log("Tienda TechSaul cargada correctamente.");
-                };
-
-                document.body.appendChild(script);
-
-            } catch (error) {
-                console.error("Fallo al cargar:", error);
-                document.body.innerHTML = "<h1 style='text-align:center; margin-top:50px;'>Error de conexión. Por favor recarga la página.</h1>";
-            }
-        })();
-    </script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
