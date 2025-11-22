@@ -1,0 +1,656 @@
+//adminsaul
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechSaul | Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, set, get, remove, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        window.firebaseModules = { initializeApp, getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, getDatabase, ref, set, get, remove, onValue, push, update };
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .banner-row-header { cursor: pointer; transition: background-color 0.2s; }
+        .banner-row-header:hover { background-color: #f8fafc; }
+        .banner-row-body { display: none; border-top: 1px solid #e2e8f0; background-color: #f8fafc; }
+        .banner-card.open .banner-row-body { display: block; }
+        .banner-card.open .icon-caret { transform: rotate(180deg); }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Scrollbar sutil */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div id="login-view" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+            <div class="text-center mb-8">
+                <i class="ph-fill ph-gear text-4xl text-slate-900 mb-2"></i>
+                <h1 class="text-2xl font-bold">Admin Panel</h1>
+                <p class="text-slate-500 text-sm">TechSaul Management</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <input type="email" id="email" placeholder="Email Admin" class="w-full p-3 border rounded-lg" required>
+                <input type="password" id="password" placeholder="Contraseña" class="w-full p-3 border rounded-lg" required>
+                <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-slate-800 transition">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="dashboard-view" class="hidden min-h-screen flex flex-col">
+        <header class="bg-slate-900 text-white px-6 py-4 flex flex-col md:flex-row justify-between items-center shadow-md sticky top-0 z-30 gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-yellow-400 text-slate-900 p-1 rounded font-bold text-xs">ADMIN</div>
+                <h1 class="font-bold text-xl hidden sm:block">TechSaul Panel</h1>
+            </div>
+            
+            <div class="flex bg-slate-800 rounded-lg p-1 gap-1 overflow-x-auto w-full md:w-auto no-scrollbar">
+                <button onclick="adminApp.switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2 rounded-md text-sm font-bold bg-yellow-400 text-slate-900 transition flex items-center gap-2"><i class="ph-bold ph-house"></i> Inicio</button>
+                <button onclick="adminApp.switchTab('products')" id="tab-products" class="px-4 py-2 rounded-md text-sm font-bold text-slate-300 hover:text-white transition flex items-center gap-2"><i class="ph-bold ph-package"></i> Productos</button>
+                <button onclick="adminApp.switchTab('orders')" id="tab-orders" class="px-4 py-2 rounded-md text-sm font-bold text-slate-300 hover:text-white transition flex items-center gap-2 relative">
+                    <i class="ph-bold ph-receipt"></i> Pedidos
+                    <span id="order-alert-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-slate-900 hidden">0</span>
+                </button>
+                <button onclick="adminApp.switchTab('clients')" id="tab-clients" class="px-4 py-2 rounded-md text-sm font-bold text-slate-300 hover:text-white transition flex items-center gap-2"><i class="ph-bold ph-users"></i> Clientes</button>
+                <button onclick="adminApp.switchTab('banner')" id="tab-banner" class="px-4 py-2 rounded-md text-sm font-bold text-slate-300 hover:text-white transition flex items-center gap-2"><i class="ph-bold ph-images"></i> Portada</button>
+                <button onclick="adminApp.switchTab('reviews')" id="tab-reviews" class="px-4 py-2 rounded-md text-sm font-bold text-slate-300 hover:text-white transition flex items-center gap-2"><i class="ph-bold ph-chat"></i> Reseñas</button>
+            </div>
+
+            <button onclick="adminApp.logout()" class="text-slate-300 hover:text-white text-sm font-bold flex items-center gap-2">
+                <i class="ph-bold ph-sign-out"></i> <span class="hidden sm:inline">Salir</span>
+            </button>
+        </header>
+
+        <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+            
+            <div id="view-dashboard" class="block fade-in">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6">Resumen del Mes</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                        <div class="relative z-10">
+                            <div class="text-sm text-slate-400 font-bold uppercase tracking-wider mb-1" id="dash-month-label">Mes Actual</div>
+                            <div class="text-4xl font-extrabold text-yellow-400" id="dash-earnings">S/ 0.00</div>
+                            <div class="text-xs text-slate-400 mt-2">Ingresos por pedidos aprobados</div>
+                        </div>
+                        <i class="ph-fill ph-chart-line-up absolute -bottom-4 -right-4 text-slate-800 text-9xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h3 class="font-bold text-lg text-red-600 flex items-center gap-2 mb-4"><i class="ph-fill ph-warning-circle"></i> Alerta de Stock Bajo (Menos de 5)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="text-xs uppercase bg-red-50 text-red-800 font-bold">
+                                <tr>
+                                    <th class="p-3 rounded-l-lg">Producto</th>
+                                    <th class="p-3">Stock Actual</th>
+                                    <th class="p-3 rounded-r-lg text-right">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-low-stock-body" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div id="dash-no-low-stock" class="hidden text-center text-slate-400 py-4 text-sm">Todo en orden, inventario saludable.</div>
+                </div>
+            </div>
+
+            <div id="view-products" class="hidden fade-in">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold text-slate-900">Productos</h2>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <div class="relative">
+                            <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
+                            <input type="text" id="product-search" placeholder="Buscar producto..." oninput="adminApp.handleProductSearch(this.value)" class="pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:border-slate-900 outline-none w-full sm:w-64 text-sm">
+                        </div>
+                        <button onclick="adminApp.openProductModal()" class="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center justify-center gap-2 hover:bg-slate-800">
+                            <i class="ph-bold ph-plus"></i> Nuevo
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                                <tr>
+                                    <th class="p-4 border-b">Producto</th>
+                                    <th class="p-4 border-b">Categoría</th>
+                                    <th class="p-4 border-b">Stock</th>
+                                    <th class="p-4 border-b">Precio</th>
+                                    <th class="p-4 border-b text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table-body" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div id="empty-products" class="hidden p-12 text-center text-slate-400"><i class="ph ph-cube text-4xl mb-2"></i><p>Sin productos o no hay coincidencias.</p></div>
+                </div>
+                <div id="pagination-controls" class="flex justify-center items-center gap-2 pb-8"></div>
+            </div>
+
+            <div id="view-categories" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-900">Categorías</h2>
+                    <button onclick="adminApp.openCategoryModal()" class="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 hover:bg-slate-800">
+                        <i class="ph-bold ph-plus"></i> Nueva Categoría
+                    </button>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                                <tr><th class="p-4 border-b">Nombre</th><th class="p-4 border-b">Slug (URL)</th><th class="p-4 border-b text-right">Acciones</th></tr>
+                            </thead>
+                            <tbody id="categories-table-body" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div id="empty-categories" class="hidden p-12 text-center text-slate-400"><i class="ph ph-list-dashes text-4xl mb-2"></i><p>Sin categorías.</p></div>
+                </div>
+            </div>
+
+            <div id="view-banner" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-900">Editar Portada</h2>
+                    <button onclick="adminApp.saveBanners()" class="bg-green-500 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 hover:bg-green-600">
+                        <i class="ph-bold ph-floppy-disk"></i> Guardar Cambios
+                    </button>
+                </div>
+                <div class="max-w-4xl mx-auto">
+                    <form id="banner-form" onsubmit="event.preventDefault(); adminApp.saveBanners();">
+                        <div id="banners-list-container" class="space-y-4 mb-6"></div>
+                        <button type="button" onclick="addBannerCard()" class="w-full border-2 border-dashed border-slate-300 text-slate-500 font-bold py-4 rounded-xl hover:border-slate-900 hover:text-slate-900 transition flex items-center justify-center gap-2 bg-white">
+                            <i class="ph-bold ph-plus-circle text-2xl"></i> Agregar Nuevo Slide
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="view-reviews" class="hidden fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-900">Gestión de Comentarios</h2>
+                </div>
+                <div id="reviews-list" class="space-y-4"></div>
+                <div id="empty-reviews" class="hidden p-12 text-center text-slate-400">
+                    <i class="ph ph-chat-teardrop-text text-4xl mb-2"></i>
+                    <p>No hay comentarios registrados.</p>
+                </div>
+            </div>
+
+            <div id="view-orders" class="hidden fade-in">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold text-slate-900">Gestión de Pedidos</h2>
+                    <div class="relative w-full md:w-64">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
+                        <input type="text" id="order-search" placeholder="Buscar pedido, cliente o DNI..." oninput="adminApp.handleOrderSearch(this.value)" class="pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:border-slate-900 outline-none w-full text-sm">
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                                <tr>
+                                    <th class="p-4 border-b">ID / Timer</th>
+                                    <th class="p-4 border-b">Cliente / Contacto</th>
+                                    <th class="p-4 border-b">Total / Pago</th>
+                                    <th class="p-4 border-b">Estado</th>
+                                    <th class="p-4 border-b text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table-body" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div id="empty-orders" class="hidden p-12 text-center text-slate-400"><i class="ph ph-receipt text-4xl mb-2"></i><p>No hay pedidos pendientes.</p></div>
+                </div>
+            </div>
+
+            <div id="view-clients" class="hidden fade-in">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6">Cartera de Clientes</h2>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+                                <tr>
+                                    <th class="p-4 border-b">Cliente</th>
+                                    <th class="p-4 border-b">DNI / Teléfono</th>
+                                    <th class="p-4 border-b">Total Comprado</th>
+                                    <th class="p-4 border-b">Último Pedido</th>
+                                    <th class="p-4 border-b text-right">Detalles</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clients-table-body" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div id="empty-clients" class="hidden p-12 text-center text-slate-400"><i class="ph ph-users text-4xl mb-2"></i><p>Aún no hay clientes con pedidos.</p></div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="product-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="adminApp.closeModal('product')"></div>
+        <div class="absolute inset-y-0 right-0 w-full md:w-[500px] bg-white shadow-2xl p-6 overflow-y-auto transform transition-transform duration-300 translate-x-full" id="product-panel">
+            <h2 class="text-xl font-bold mb-6" id="p-modal-title">Nuevo Producto</h2>
+            <form id="product-form" class="space-y-4">
+                <input type="hidden" id="p-id">
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Nombre</label><input type="text" id="p-name" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900" required></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div> <label class="block text-xs font-bold text-slate-500 mb-1">Precio Normal (S/)</label><input type="number" step="0.01" id="p-price" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900" required></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">Categoría</label><select id="p-category" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900"><option value="">Cargando...</option></select></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">Stock (Unidades)</label><input type="number" id="p-stock" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900" placeholder="0" required></div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">¿Está en Oferta?</label>
+                        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2">
+                            <input type="checkbox" id="p-offer" class="w-5 h-5 accent-slate-900" onchange="document.getElementById('p-offer-price').disabled = !this.checked">
+                            <input type="number" step="0.01" id="p-offer-price" class="w-full bg-transparent outline-none text-sm font-bold disabled:text-slate-400" placeholder="Precio Rebajado (S/)" disabled>
+                        </div>
+                    </div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Slug</label><input type="text" id="p-slug" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">URL Imagen Principal</label><input type="url" id="p-image" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900" required><img id="p-preview" src="" class="w-full h-40 object-contain mt-2 rounded border border-dashed hidden"></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Galería (URLs una por línea)</label><textarea id="p-gallery" rows="3" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900"></textarea></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Descripción</label><textarea id="p-desc" rows="4" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900" required></textarea></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Especificaciones (Una por línea)</label><textarea id="p-specs" rows="4" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900"></textarea></div>
+                <button type="submit" class="w-full py-3 rounded-lg bg-slate-900 text-white font-bold hover:bg-slate-800 shadow-lg mt-4">Guardar Producto</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="category-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="adminApp.closeModal('category')"></div>
+        <div class="absolute inset-y-0 right-0 w-full md:w-[400px] bg-white shadow-2xl p-6 overflow-y-auto transform transition-transform duration-300 translate-x-full" id="category-panel">
+            <h2 class="text-xl font-bold mb-6" id="c-modal-title">Nueva Categoría</h2>
+            <form id="category-form" class="space-y-4">
+                <input type="hidden" id="c-id">
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Nombre Categoría</label><input type="text" id="c-name" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900" required></div>
+                <div><label class="block text-xs font-bold text-slate-500 mb-1">Slug (URL)</label><input type="text" id="c-slug" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-slate-900" placeholder="auto-generado"></div>
+                <button type="submit" class="w-full py-3 rounded-lg bg-slate-900 text-white font-bold hover:bg-slate-800 shadow-lg mt-4">Guardar Categoría</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="client-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="adminApp.closeModal('client')"></div>
+        <div class="absolute inset-y-0 right-0 w-full md:w-[600px] bg-white shadow-2xl p-6 overflow-y-auto transform transition-transform duration-300 translate-x-full flex flex-col" id="client-panel">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <h2 class="text-xl font-bold flex items-center gap-2"><i class="ph-bold ph-user-list"></i> Historial de Compras</h2>
+                <button onclick="adminApp.closeModal('client')" class="p-2 hover:bg-slate-100 rounded-full"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div id="client-history-content" class="space-y-4 flex-1 overflow-y-auto">
+                </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const { initializeApp, getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, getDatabase, ref, set, get, remove, onValue, push, update } = window.firebaseModules;
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCjiOBH2TvmuTq5qCP6JTv0GH6XI_N9s4Y",
+            authDomain: "netflix-panel-v1.firebaseapp.com",
+            databaseURL: "https://netflix-panel-v1-default-rtdb.firebaseio.com",
+            projectId: "netflix-panel-v1",
+            storageBucket: "netflix-panel-v1.firebasestorage.app",
+            messagingSenderId: "581170714950",
+            appId: "1:581170714950:web:75d28c7ebcef1ab3d46d47"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let products = [];
+        let categories = [];
+        let orders = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        
+        // Variables para los buscadores
+        let currentProductSearch = "";
+        let currentOrderSearch = "";
+
+        window.deleteBannerCard = async (btn) => {
+            event.stopPropagation(); 
+            const result = await Swal.fire({ title: '¿Eliminar Slide?', text: "Se eliminará de la base de datos inmediatamente.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', cancelButtonColor: '#64748b', confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
+            if (result.isConfirmed) { btn.closest('.banner-card').remove(); await adminApp.saveBanners(true); Swal.fire({icon: 'success', title: 'Eliminado', toast: true, position: 'bottom-end', timer: 1000, showConfirmButton: false}); }
+        };
+
+        window.addBannerCard = (data = {}) => {
+            const container = document.getElementById('banners-list-container');
+            let selectOptions = `<option value="/shop" ${!data.btnLink || data.btnLink === '/shop' ? 'selected' : ''}>-- Ir a Tienda (General) --</option>`;
+            if(categories.length > 0) { selectOptions += `<optgroup label="Categorías">`; categories.forEach(c => { const val = `/shop?category=${c.name}`; const isSel = data.btnLink === val ? 'selected' : ''; selectOptions += `<option value="${val}" ${isSel}>${c.name}</option>`; }); selectOptions += `</optgroup>`; }
+            if(products.length > 0) { selectOptions += `<optgroup label="Productos">`; products.forEach(p => { const val = `?page=product&product=${p.slug}`; const isSel = data.btnLink === val ? 'selected' : ''; selectOptions += `<option value="${val}" ${isSel}>${p.name}</option>`; }); selectOptions += `</optgroup>`; }
+            if(data.btnLink && !selectOptions.includes(data.btnLink)) selectOptions += `<option value="${data.btnLink}" selected>Link Personalizado: ${data.btnLink}</option>`;
+
+            const div = document.createElement('div');
+            div.className = "banner-card bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm transition-all";
+            div.innerHTML = `
+                <div class="banner-row-header flex items-center justify-between p-4" onclick="this.parentElement.classList.toggle('open')">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-10 bg-slate-100 rounded overflow-hidden flex-shrink-0 border border-slate-200">${data.image ? `<img src="${data.image}" class="w-full h-full object-cover">` : '<div class="w-full h-full flex items-center justify-center text-slate-300"><i class="ph-bold ph-image"></i></div>'}</div>
+                        <div><h4 class="font-bold text-sm text-slate-800">${data.title || 'Nueva Portada'}</h4><p class="text-xs text-slate-500">${data.subtitle || 'Sin subtítulo'}</p></div>
+                    </div>
+                    <div class="flex items-center gap-3"><button type="button" onclick="deleteBannerCard(this)" class="text-slate-400 hover:text-red-500 p-2"><i class="ph-bold ph-trash"></i></button><i class="ph-bold ph-caret-down text-slate-400 icon-caret transition-transform duration-200"></i></div>
+                </div>
+                <div class="banner-row-body p-6 space-y-4">
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">URL Imagen de Fondo</label><input type="url" class="b-img w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-slate-900 text-sm" value="${data.image || ''}" placeholder="https://..." oninput="this.closest('.banner-card').querySelector('img')?.setAttribute('src', this.value)"></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 mb-1">Etiqueta (Badge)</label><input type="text" class="b-badge w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-slate-900 text-sm" value="${data.badge || ''}" placeholder="Ej: Nuevo 2025"></div><div><label class="block text-xs font-bold text-slate-500 mb-1">Subtítulo</label><input type="text" class="b-sub w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-slate-900 text-sm" value="${data.subtitle || ''}" placeholder="Ej: Lo mejor en audio"></div></div>
+                    <div><label class="block text-xs font-bold text-slate-500 mb-1">Título Principal</label><input type="text" class="b-title w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-slate-900 text-sm font-bold" value="${data.title || ''}" placeholder="Ej: Tecnología <br> Premium" oninput="this.closest('.banner-card').querySelector('h4').innerText = this.value || 'Nueva Portada'"></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 mb-1">Texto Botón</label><input type="text" class="b-btn-text w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-slate-900 text-sm" value="${data.btnText || ''}" placeholder="Ver Oferta"></div><div><label class="block text-xs font-bold text-slate-500 mb-1">Acción del Botón</label><select class="b-btn-link w-full p-3 bg-white border border-slate-200 rounded-lg outline-none focus:border-slate-900 text-sm cursor-pointer hover:bg-slate-50">${selectOptions}</select></div></div>
+                </div>`;
+            container.appendChild(div);
+        };
+
+        window.adminApp = {
+            switchTab: (tab) => {
+                ['dashboard', 'products', 'categories', 'reviews', 'orders', 'clients', 'banner'].forEach(t => {
+                    const el = document.getElementById(`view-${t}`);
+                    const btn = document.getElementById(`tab-${t}`);
+                    if (el) el.classList.toggle('hidden', t !== tab);
+                    if (btn) {
+                        if(t === tab) btn.className = "px-4 py-2 rounded-md text-sm font-bold bg-yellow-400 text-slate-900 transition flex items-center gap-2 relative";
+                        else btn.className = "px-4 py-2 rounded-md text-sm font-bold text-slate-300 hover:text-white transition flex items-center gap-2 relative";
+                    }
+                });
+                if(tab === 'dashboard') adminApp.renderDashboard();
+                if(tab === 'products') adminApp.renderProducts(1);
+                if(tab === 'orders') adminApp.renderOrdersTable();
+                if(tab === 'clients') adminApp.renderClients();
+            },
+            logout: () => signOut(auth),
+            
+            handleProductSearch: (val) => { currentProductSearch = val.toLowerCase(); currentPage = 1; adminApp.renderProducts(1); },
+            handleOrderSearch: (val) => { currentOrderSearch = val.toLowerCase(); adminApp.renderOrdersTable(); },
+
+            saveBanners: async (silent = false) => {
+                if(!silent) Swal.showLoading();
+                const cards = document.querySelectorAll('.banner-card');
+                const bannersData = Array.from(cards).map(card => ({
+                    image: card.querySelector('.b-img').value.trim(), badge: card.querySelector('.b-badge').value.trim(), subtitle: card.querySelector('.b-sub').value.trim(), title: card.querySelector('.b-title').value.trim(), btnText: card.querySelector('.b-btn-text').value.trim(), btnLink: card.querySelector('.b-btn-link').value.trim()
+                })).filter(b => b.image !== '');
+                try { await set(ref(db, 'home_banner'), bannersData); if(!silent) Swal.fire('Portada Actualizada', 'Cambios guardados.', 'success'); } catch(e) { console.error(e); if(!silent) Swal.fire('Error', 'No se pudo guardar.', 'error'); }
+            },
+
+            renderDashboard: () => {
+                const now = new Date();
+                const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                document.getElementById('dash-month-label').innerText = `Ganancias - ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+                const monthlyTotal = orders.filter(o => { const d = new Date(o.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && o.status === 'Aprobado'; }).reduce((sum, o) => sum + o.total, 0);
+                document.getElementById('dash-earnings').innerText = `S/ ${monthlyTotal.toFixed(2)}`;
+                const lowStock = products.filter(p => (p.stock || 0) < 5);
+                const lsBody = document.getElementById('dash-low-stock-body');
+                if(lowStock.length > 0) {
+                    document.getElementById('dash-no-low-stock').classList.add('hidden');
+                    lsBody.innerHTML = lowStock.map(p => `<tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50"><td class="p-3 font-medium text-slate-800">${p.name}</td><td class="p-3 font-bold text-red-600">${p.stock}</td><td class="p-3 text-right"><button onclick="adminApp.openProductModal('${p.id}')" class="text-xs bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-700">Editar Stock</button></td></tr>`).join('');
+                } else { lsBody.innerHTML = ''; document.getElementById('dash-no-low-stock').classList.remove('hidden'); }
+            },
+
+            renderClients: () => {
+                const clientMap = new Map();
+                orders.forEach(o => {
+                    const key = o.userId; 
+                    if(!clientMap.has(key)) { clientMap.set(key, { id: key, name: o.billing.name, phone: o.billing.phone, dni: o.billing.dni, totalSpent: 0, lastOrder: o.date, orderCount: 0 }); }
+                    const client = clientMap.get(key); client.totalSpent += o.total; client.orderCount += 1;
+                    if(new Date(o.date) > new Date(client.lastOrder)) client.lastOrder = o.date;
+                });
+                const tbody = document.getElementById('clients-table-body');
+                const empty = document.getElementById('empty-clients');
+                if(clientMap.size === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+                empty.classList.add('hidden');
+                tbody.innerHTML = Array.from(clientMap.values()).map(c => `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100">
+                        <td class="p-4 font-bold text-slate-900">${c.name}<div class="text-xs text-slate-400 font-normal">${c.orderCount} pedidos totales</div></td>
+                        <td class="p-4 text-sm">${c.dni} <br> <span class="text-blue-600 font-bold"><i class="ph-bold ph-whatsapp"></i> ${c.phone}</span></td>
+                        <td class="p-4 font-bold text-green-700">S/ ${c.totalSpent.toFixed(2)}</td>
+                        <td class="p-4 text-xs text-slate-500">${new Date(c.lastOrder).toLocaleDateString()}</td>
+                        <td class="p-4 text-right"><button onclick="adminApp.showClientDetails('${c.id}')" class="text-slate-500 hover:text-blue-600 font-bold text-xs flex items-center justify-end gap-1 ml-auto"><i class="ph-bold ph-eye"></i> Ver Historial</button></td>
+                    </tr>`).join('');
+            },
+
+            showClientDetails: (userId) => {
+                const userOrders = orders.filter(o => o.userId === userId).sort((a,b) => new Date(b.date) - new Date(a.date));
+                const container = document.getElementById('client-history-content');
+                if(userOrders.length === 0) container.innerHTML = '<p class="text-center text-slate-400">Sin historial disponible.</p>';
+                else {
+                    container.innerHTML = userOrders.map(o => {
+                        const itemsHTML = o.items.map(i => `<div class="flex justify-between text-xs py-1 border-b border-slate-50 last:border-0"><span class="text-slate-600">${i.qty}x ${i.name}</span><span class="font-bold text-slate-800">S/ ${(i.price*i.qty).toFixed(2)}</span></div>`).join('');
+                        let statusColor = o.status === 'Aprobado' ? 'text-green-600' : (o.status === 'Pendiente de Validación' ? 'text-yellow-600' : 'text-red-500');
+                        return `
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-bold text-sm text-slate-900">Pedido #${o.id.slice(-6)}</span>
+                                <span class="text-xs font-bold ${statusColor}">${o.status}</span>
+                            </div>
+                            <div class="text-xs text-slate-400 mb-3">${new Date(o.date).toLocaleDateString()} - ${new Date(o.date).toLocaleTimeString()}</div>
+                            <div class="bg-white p-3 rounded-lg border border-slate-100 mb-3 space-y-1">${itemsHTML}</div>
+                            <div class="text-right font-bold text-slate-900 text-sm">Total: S/ ${o.total.toFixed(2)}</div>
+                        </div>`;
+                    }).join('');
+                }
+                const modal = document.getElementById('client-modal');
+                const panel = document.getElementById('client-panel');
+                modal.classList.remove('hidden');
+                setTimeout(() => panel.classList.remove('translate-x-full'), 10);
+            },
+
+            renderProducts: (page) => {
+                currentPage = page;
+                let filtered = products;
+                if(currentProductSearch) filtered = products.filter(p => p.name.toLowerCase().includes(currentProductSearch) || p.category.toLowerCase().includes(currentProductSearch));
+                
+                const start = (page - 1) * itemsPerPage;
+                const paginatedItems = filtered.slice(start, start + itemsPerPage);
+                const tbody = document.getElementById('products-table-body');
+                const empty = document.getElementById('empty-products');
+                
+                if(filtered.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); }
+                else {
+                    empty.classList.add('hidden');
+                    tbody.innerHTML = paginatedItems.map(p => `
+                        <tr class="hover:bg-slate-50 border-b border-slate-100">
+                            <td class="p-4 font-medium flex items-center gap-3">
+                                <img src="${p.image}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0">
+                                <div>
+                                    <div class="line-clamp-1">${p.name}</div>
+                                    ${p.isOffer ? '<span class="bg-red-100 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded">OFERTA</span>' : ''}
+                                </div>
+                            </td>
+                            <td class="p-4 text-slate-500"><span class="bg-slate-100 px-2 py-1 rounded text-xs font-bold uppercase">${p.category}</span></td>
+                            <td class="p-4 text-slate-700 text-sm font-bold ${p.stock < 5 ? 'text-red-600' : ''}">${p.stock !== undefined ? p.stock : 0} unid.</td>
+                            <td class="p-4 font-bold text-sm">${p.isOffer && p.offerPrice ? `<span class="text-slate-400 line-through text-xs mr-1">S/ ${p.price}</span> <span class="text-red-600">S/ ${p.offerPrice}</span>` : `S/ ${p.price}`}</td>
+                            <td class="p-4 text-right"><button onclick="adminApp.openProductModal('${p.id}')" class="text-blue-600 p-2"><i class="ph-bold ph-pencil-simple"></i></button><button onclick="adminApp.deleteItem('products', '${p.id}')" class="text-red-500 p-2"><i class="ph-bold ph-trash"></i></button></td>
+                        </tr>`).join('');
+                }
+
+                const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                const controls = document.getElementById('pagination-controls');
+                if(totalPages > 1) {
+                    controls.innerHTML = `
+                        <button onclick="adminApp.renderProducts(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="px-3 py-1 bg-white border rounded hover:bg-slate-50 disabled:opacity-50 text-sm">Anterior</button>
+                        <span class="text-sm font-bold text-slate-600">Página ${currentPage} de ${totalPages}</span>
+                        <button onclick="adminApp.renderProducts(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1 bg-white border rounded hover:bg-slate-50 disabled:opacity-50 text-sm">Siguiente</button>
+                    `;
+                } else controls.innerHTML = '';
+            },
+
+            renderOrdersTable: () => {
+                let filtered = orders;
+                if(currentOrderSearch) {
+                    filtered = orders.filter(o => 
+                        o.id.includes(currentOrderSearch) || 
+                        o.billing.name.toLowerCase().includes(currentOrderSearch) || 
+                        o.billing.dni.includes(currentOrderSearch)
+                    );
+                }
+
+                const tbody = document.getElementById('orders-table-body');
+                const empty = document.getElementById('empty-orders');
+                
+                if(filtered.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); }
+                else {
+                    empty.classList.add('hidden');
+                    tbody.innerHTML = filtered.map(o => {
+                        let badgeColor = o.status === 'Aprobado' ? "bg-green-100 text-green-700" : (o.status.includes('Expirado') || o.status === 'Rechazado' ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700");
+                        let timerHTML = "";
+                        if(o.status === 'Pendiente de Validación' && o.expireAt) timerHTML = `<div class="text-xs font-bold mt-1"><i class="ph-bold ph-clock"></i> <span class="admin-order-timer" data-id="${o.id}" data-expire="${o.expireAt}">Calculando...</span></div>`;
+                        return `
+                        <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
+                            <td class="p-4 align-top"><div class="font-bold text-slate-900">#${o.id ? o.id.slice(-6) : '---'}</div><div class="text-xs text-slate-500">${new Date(o.date).toLocaleDateString()} <br> ${new Date(o.date).toLocaleTimeString()}</div>${timerHTML}</td>
+                            <td class="p-4 align-top"><div class="font-bold text-sm">${o.billing.name}</div><div class="text-xs text-slate-500">DNI: ${o.billing.dni}</div><div class="text-xs text-blue-600"><i class="ph-bold ph-whatsapp"></i> ${o.billing.phone}</div></td>
+                            <td class="p-4 align-top"><div class="font-bold text-slate-900">S/ ${o.total.toFixed(2)}</div><div class="mt-1">${o.payment.method === 'WhatsApp/Otro' || o.payment.securityCode === 'N/A' ? '<span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded border border-green-200 font-bold"><i class="ph-bold ph-whatsapp"></i> WhatsApp/Otro</span>' : `<div class="text-[10px] bg-slate-100 inline-block px-2 py-0.5 rounded border border-slate-200">Código: <b>${o.payment.securityCode}</b></div>`}</div></td>
+                            <td class="p-4 align-top"><span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${badgeColor}">${o.status}</span></td>
+                            <td class="p-4 text-right align-top space-x-1 whitespace-nowrap">${o.status === 'Pendiente de Validación' ? `<button onclick="adminApp.updateOrderStatus('${o.id}', '${o.userId}', 'Aprobado')" class="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 shadow-sm"><i class="ph-bold ph-check"></i></button><button onclick="adminApp.updateOrderStatus('${o.id}', '${o.userId}', 'Rechazado')" class="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 shadow-sm"><i class="ph-bold ph-x"></i></button>` : '<span class="text-slate-300 text-xs italic mr-2">Cerrado</span>'}<button onclick="adminApp.deleteOrder('${o.id}', '${o.userId}')" class="bg-white text-red-500 border border-red-200 p-2 rounded-lg hover:bg-red-50 shadow-sm"><i class="ph-bold ph-trash"></i></button></td>
+                        </tr>`;
+                    }).join('');
+                }
+            },
+
+            openProductModal: (id = null) => {
+                const modal = document.getElementById('product-modal');
+                const panel = document.getElementById('product-panel');
+                document.getElementById('product-form').reset();
+                document.getElementById('p-preview').classList.add('hidden');
+                const select = document.getElementById('p-category');
+                select.innerHTML = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+                if(id) {
+                    const p = products.find(x => x.id === id);
+                    if(p) {
+                        document.getElementById('p-modal-title').innerText = "Editar Producto";
+                        document.getElementById('p-id').value = p.id; document.getElementById('p-name').value = p.name; document.getElementById('p-price').value = p.price; document.getElementById('p-category').value = p.category; document.getElementById('p-slug').value = p.slug; document.getElementById('p-image').value = p.image; document.getElementById('p-gallery').value = p.gallery ? p.gallery.join('\n') : ''; document.getElementById('p-desc').value = p.description; document.getElementById('p-specs').value = p.specifications || ''; document.getElementById('p-stock').value = p.stock || 0; document.getElementById('p-offer').checked = p.isOffer || false;
+                        const offerInput = document.getElementById('p-offer-price'); offerInput.value = p.offerPrice || ''; offerInput.disabled = !p.isOffer; const img = document.getElementById('p-preview'); img.src = p.image; img.classList.remove('hidden');
+                    }
+                } else { document.getElementById('p-modal-title').innerText = "Crear Producto"; document.getElementById('p-id').value = ""; document.getElementById('p-stock').value = 0; document.getElementById('p-offer').checked = false; document.getElementById('p-offer-price').value = ""; document.getElementById('p-offer-price').disabled = true; }
+                modal.classList.remove('hidden'); setTimeout(() => panel.classList.remove('translate-x-full'), 10);
+            },
+            
+            openCategoryModal: (id = null) => {
+                const modal = document.getElementById('category-modal');
+                const panel = document.getElementById('category-panel');
+                document.getElementById('category-form').reset();
+                if(id) { const c = categories.find(x => x.id === id); document.getElementById('c-modal-title').innerText = "Editar Categoría"; document.getElementById('c-id').value = c.id; document.getElementById('c-name').value = c.name; document.getElementById('c-slug').value = c.slug; } 
+                else { document.getElementById('c-modal-title').innerText = "Nueva Categoría"; document.getElementById('c-id').value = ""; }
+                modal.classList.remove('hidden'); setTimeout(() => panel.classList.remove('translate-x-full'), 10);
+            },
+
+            closeModal: (type) => {
+                const modal = document.getElementById(`${type}-modal`);
+                const panel = document.getElementById(`${type}-panel`);
+                panel.classList.add('translate-x-full');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            },
+
+            deleteItem: async (type, id) => { if((await Swal.fire({title: '¿Eliminar?', icon: 'warning', showCancelButton: true})).isConfirmed) { await remove(ref(db, `${type}/${id}`)); Swal.fire('Eliminado', '', 'success'); } },
+            deleteReview: async (productId, reviewId) => { if((await Swal.fire({title: '¿Borrar comentario?', text: "Se recalculará el promedio del producto.", icon: 'warning', showCancelButton: true})).isConfirmed) { try { Swal.showLoading(); await remove(ref(db, `reviews/${productId}/${reviewId}`)); const snap = await get(ref(db, `reviews/${productId}`)); let rating = 0, count = 0; if(snap.exists()) { const revs = Object.values(snap.val()); count = revs.length; rating = revs.reduce((a,b) => a + b.rating, 0) / count; } await update(ref(db, `products/${productId}`), { rating: rating, reviewCount: count }); Swal.fire('Comentario Eliminado', '', 'success'); } catch(e) { console.error(e); Swal.fire('Error', e.message, 'error'); } } },
+
+            updateOrderStatus: async (orderId, userId, newStatus) => {
+                try { const updates = {}; updates[`all_orders/${orderId}/status`] = newStatus; updates[`users/${userId}/orders/${orderId}/status`] = newStatus; await update(ref(db), updates);
+                    const color = newStatus === 'Aprobado' ? 'success' : 'error'; Swal.fire({ icon: color, title: `Pedido ${newStatus}`, toast: true, position: 'bottom-end', timer: 1500, showConfirmButton: false });
+                } catch (e) { console.error(e); Swal.fire('Error', 'No se pudo actualizar.', 'error'); }
+            },
+            deleteOrder: async (orderId, userId) => { if((await Swal.fire({title: '¿Eliminar Pedido?', text: "Esta acción borrará el registro permanentemente.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'})).isConfirmed) { try { const updates = {}; updates[`all_orders/${orderId}`] = null; updates[`users/${userId}/orders/${orderId}`] = null; await update(ref(db), updates); Swal.fire('Pedido Eliminado', '', 'success'); } catch(e) { console.error(e); Swal.fire('Error', e.message, 'error'); } } }
+        };
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => { e.preventDefault(); try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value); } catch (e) { Swal.fire('Error', 'Acceso denegado', 'error'); } });
+ document.getElementById('product-form').addEventListener('submit', async (e) => { 
+    e.preventDefault(); 
+    Swal.showLoading(); 
+    const id = document.getElementById('p-id').value; 
+    const isOffer = document.getElementById('p-offer').checked; 
+    
+    // Objeto base con los datos del formulario
+    const data = { 
+        name: document.getElementById('p-name').value, 
+        price: parseFloat(document.getElementById('p-price').value), 
+        category: document.getElementById('p-category').value, 
+        slug: document.getElementById('p-slug').value || document.getElementById('p-name').value.toLowerCase().replace(/ /g, '-'), 
+        image: document.getElementById('p-image').value, 
+        gallery: document.getElementById('p-gallery').value.split('\n').filter(x => x.trim() !== ''), 
+        description: document.getElementById('p-desc').value, 
+        specifications: document.getElementById('p-specs').value, 
+        stock: parseInt(document.getElementById('p-stock').value) || 0, 
+        isOffer: isOffer, 
+        offerPrice: isOffer ? parseFloat(document.getElementById('p-offer-price').value) : null 
+    }; 
+
+    try { 
+        if(id) {
+            // Si es EDICIÓN, solo actualizamos los datos (no tocamos la fecha original)
+            await update(ref(db, `products/${id}`), data); 
+        } else { 
+            // Si es NUEVO, generamos ID y agregamos la FECHA AUTOMÁTICA
+            const r = push(ref(db, 'products')); 
+            await set(r, {
+                ...data, 
+                id: r.key, 
+                date: new Date().toISOString() // <--- ¡ESTO ACTIVA EL CARTEL "NUEVO"!
+            }); 
+        } 
+        adminApp.closeModal('product'); 
+        Swal.close(); 
+    } catch(e) { Swal.fire('Error', e.message, 'error'); } 
+});
+        
+        document.getElementById('category-form').addEventListener('submit', async (e) => { e.preventDefault(); Swal.showLoading(); const id = document.getElementById('c-id').value; const name = document.getElementById('c-name').value; const data = { name: name, slug: document.getElementById('c-slug').value || name.toLowerCase().replace(/ /g, '-') }; try { if(id) await update(ref(db, `categories/${id}`), data); else { const r = push(ref(db, 'categories')); await set(r, {...data, id: r.key}); } adminApp.closeModal('category'); Swal.close(); } catch(e) { Swal.fire('Error', e.message, 'error'); } });
+        document.getElementById('p-image').addEventListener('input', e => { const i = document.getElementById('p-preview'); if(e.target.value){ i.src=e.target.value; i.classList.remove('hidden'); } else i.classList.add('hidden'); });
+
+        onAuthStateChanged(auth, (user) => {
+            if(user) {
+                document.getElementById('login-view').classList.add('hidden'); document.getElementById('dashboard-view').classList.remove('hidden'); adminApp.switchTab('dashboard');
+                onValue(ref(db, 'home_banner'), (snapshot) => { const container = document.getElementById('banners-list-container'); container.innerHTML = ''; if(snapshot.exists()) { const data = snapshot.val(); let bannerList = Array.isArray(data) ? data : (data.image ? [data] : []); bannerList.forEach(item => addBannerCard(item)); } else { addBannerCard(); } });
+                onValue(ref(db, 'products'), s => { if(s.exists()) products = Object.values(s.val()); else products = []; if(!document.getElementById('view-products').classList.contains('hidden')) adminApp.renderProducts(currentPage); if(!document.getElementById('view-dashboard').classList.contains('hidden')) adminApp.renderDashboard(); });
+                onValue(ref(db, 'categories'), s => { const tbody = document.getElementById('categories-table-body'); if(!s.exists()) { tbody.innerHTML = ''; document.getElementById('empty-categories').classList.remove('hidden'); return; } document.getElementById('empty-categories').classList.add('hidden'); categories = Object.values(s.val()); tbody.innerHTML = categories.map(c => `<tr class="hover:bg-slate-50 border-b border-slate-100"><td class="p-4 font-bold">${c.name}</td><td class="p-4 text-slate-500 italic text-xs">${c.slug}</td><td class="p-4 text-right"><button onclick="adminApp.openCategoryModal('${c.id}')" class="text-blue-600 p-2"><i class="ph-bold ph-pencil-simple"></i></button><button onclick="adminApp.deleteItem('categories', '${c.id}')" class="text-red-500 p-2"><i class="ph-bold ph-trash"></i></button></td></tr>`).join(''); });
+                onValue(ref(db, 'reviews'), s => { const container = document.getElementById('reviews-list'); const empty = document.getElementById('empty-reviews'); if(!s.exists()) { container.innerHTML = ''; empty.classList.remove('hidden'); return; } empty.classList.add('hidden'); const allReviews = s.val(); container.innerHTML = Object.keys(allReviews).map(productId => { const productReviews = allReviews[productId]; const prodData = products.find(p => p.id === productId); const prodName = prodData ? prodData.name : 'Producto Eliminado o ID: ' + productId; const prodImg = prodData ? prodData.image : ''; const reviewsArray = Object.entries(productReviews); return `<details class="bg-white rounded-xl border border-slate-200 overflow-hidden group open:shadow-md transition-all duration-300"><summary class="flex items-center justify-between p-4 cursor-pointer bg-slate-50 hover:bg-slate-100 transition list-none"><div class="flex items-center gap-3">${prodImg ? `<img src="${prodImg}" class="w-10 h-10 object-cover rounded-md border border-slate-200">` : '<div class="w-10 h-10 bg-slate-200 rounded-md"></div>'}<div><h3 class="font-bold text-slate-900 text-sm">${prodName}</h3><span class="text-xs text-slate-500">${reviewsArray.length} comentario(s)</span></div></div><i class="ph-bold ph-caret-down text-slate-400 group-open:rotate-180 transition-transform"></i></summary><div class="p-4 border-t border-slate-100 bg-white space-y-3">${reviewsArray.map(([revId, r]) => `<div class="flex gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100"><div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 shrink-0">${r.userName ? r.userName.charAt(0).toUpperCase() : '?'}</div><div class="flex-1"><div class="flex justify-between items-start mb-1"><span class="font-bold text-xs text-slate-900">${r.userName}</span><span class="text-[10px] text-slate-400">${new Date(r.date).toLocaleDateString()}</span></div><div class="flex text-yellow-400 text-[10px] mb-1">${Array(5).fill(0).map((_,i) => i < r.rating ? '<i class="ph-fill ph-star"></i>' : '<i class="ph-bold ph-star text-slate-300"></i>').join('')}</div><p class="text-xs text-slate-600 italic">"${r.comment}"</p></div><button onclick="adminApp.deleteReview('${productId}', '${revId}')" class="self-start p-2 text-slate-400 hover:text-red-500 transition"><i class="ph-bold ph-trash"></i></button></div>`).join('')}</div></details>`; }).join(''); });
+
+                onValue(ref(db, 'all_orders'), async (s) => {
+                    if(!s.exists()) { orders = []; document.getElementById('orders-table-body').innerHTML = ''; document.getElementById('empty-orders').classList.remove('hidden'); } 
+                    else {
+                        orders = Object.values(s.val()).sort((a,b) => new Date(b.date) - new Date(a.date));
+                        const pendingCount = orders.filter(o => o.status === 'Pendiente de Validación').length;
+                        const badge = document.getElementById('order-alert-badge');
+                        if(pendingCount > 0) { badge.innerText = pendingCount; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
+                        
+                        if(!document.getElementById('view-dashboard').classList.contains('hidden')) adminApp.renderDashboard();
+                        if(!document.getElementById('view-clients').classList.contains('hidden')) adminApp.renderClients();
+                        if(!document.getElementById('view-orders').classList.contains('hidden')) adminApp.renderOrdersTable();
+
+                        const now = Date.now(); let hasUpdates = false; const updates = {};
+                        orders.forEach(o => {
+                            if(o.status === 'Pendiente de Validación' && o.expireAt && now > o.expireAt) {
+                                updates[`all_orders/${o.id}/status`] = 'Expirado (Tiempo Agotado)'; updates[`users/${o.userId}/orders/${o.id}/status`] = 'Expirado (Tiempo Agotado)';
+                                if(o.items && Array.isArray(o.items)) { o.items.forEach(item => { const currentProd = products.find(p => p.id === item.id); if(currentProd) updates[`products/${item.id}/stock`] = (currentProd.stock || 0) + item.qty; }); }
+                                hasUpdates = true; o.status = 'Expirado (Tiempo Agotado)'; 
+                            }
+                        });
+                        if(hasUpdates) { try { await update(ref(db), updates); } catch(e) { console.error("Error revirtiendo stock", e); } }
+
+                        if(window.adminTimerInterval) clearInterval(window.adminTimerInterval);
+                        window.adminTimerInterval = setInterval(() => {
+                            const timers = document.querySelectorAll('.admin-order-timer');
+                            if(timers.length === 0) return;
+                            timers.forEach(async el => {
+                                const expire = parseInt(el.dataset.expire); const orderId = el.dataset.id; const diff = expire - Date.now();
+                                if(diff <= 0) { if(el.dataset.processing === "true") return; el.dataset.processing = "true"; el.innerHTML = "<span class='text-red-500'>Expirando...</span>"; const currentOrder = orders.find(o => o.id === orderId); if(currentOrder && currentOrder.status === 'Pendiente de Validación') { const autoUpdates = {}; autoUpdates[`all_orders/${orderId}/status`] = 'Expirado (Tiempo Agotado)'; autoUpdates[`users/${currentOrder.userId}/orders/${orderId}/status`] = 'Expirado (Tiempo Agotado)'; if(currentOrder.items && Array.isArray(currentOrder.items)) { currentOrder.items.forEach(item => { const prod = products.find(p => p.id === item.id); if(prod) autoUpdates[`products/${item.id}/stock`] = (prod.stock || 0) + item.qty; }); } try { await update(ref(db), autoUpdates); } catch(e) { console.error("Error auto-expirando", e); } } } 
+                                else { const m = Math.floor(diff / 60000); const s = Math.floor((diff % 60000) / 1000); el.innerText = `${m}:${s < 10 ? '0' : ''}${s} min restantes`; el.className = "admin-order-timer text-orange-600"; }
+                            });
+                        }, 1000);
+                    }
+                });
+            } else { document.getElementById('login-view').classList.remove('hidden'); document.getElementById('dashboard-view').classList.add('hidden'); }
+        });
+    </script>
+</body>
+</html>
