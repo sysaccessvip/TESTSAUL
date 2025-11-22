@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TechSaul | Tienda Oficial</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="antialiased min-h-screen flex flex-col text-slate-800 overflow-x-hidden">
+
+    <div id="splash-screen" class="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center">
+        <div class="text-center animate-pulse">
+            <i class="ph-fill ph-circuitry text-yellow-400 text-6xl mb-4 inline-block"></i>
+            <h1 class="text-5xl font-extrabold tracking-tighter text-white mb-8">Tech<span class="text-yellow-400">Saul</span></h1>
+        </div>
+        <div class="w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden relative">
+            <div class="absolute top-0 left-0 h-full bg-yellow-400 animate-load-bar rounded-full"></div>
+        </div>
+        <p class="text-slate-500 text-xs mt-4 font-bold tracking-widest uppercase">Cargando Tienda...</p>
+    </div>
+
+    <header id="main-header" class="bg-slate-900 text-white sticky top-0 z-50 shadow-xl">
+        <div class="w-full px-4 py-3 max-w-[1920px] mx-auto">
+            <div class="flex items-center justify-between gap-4">
+                
+                <button onclick="uiManager.toggleMobileMenu()" class="lg:hidden p-2 text-white hover:text-yellow-400 transition">
+                    <i class="ph-bold ph-list text-3xl"></i>
+                </button>
+
+                <div class="flex items-center cursor-pointer group shrink-0" onclick="router.navigate('/')">
+                    <i class="ph-fill ph-circuitry text-yellow-400 text-2xl md:text-3xl mr-2 group-hover:rotate-180 transition-transform duration-500"></i>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tighter text-white hidden sm:block">Tech<span class="text-yellow-400">Saul</span></h1>
+                </div>
+
+                <div class="hidden md:flex flex-1 items-center max-w-4xl mx-4 lg:mx-8 gap-6">
+                    <div class="flex-1 relative">
+                        <input type="text" id="global-search" class="w-full bg-slate-800 text-white border border-slate-700 rounded-full py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-yellow-400 outline-none text-sm transition-all" placeholder="Buscar productos, marcas, categorías...">
+                        <i class="ph ph-magnifying-glass absolute left-3.5 top-3 text-slate-400"></i>
+                    </div>
+
+                    <div class="hidden xl:flex items-center gap-8 border-l border-slate-700 pl-6">
+                        <div class="flex items-center gap-3 group cursor-pointer">
+                            <i class="ph ph-truck text-yellow-400 text-2xl group-hover:scale-110 transition"></i>
+                            <div class="leading-tight">
+                                <div class="font-bold text-white text-sm">Envíos</div>
+                                <div class="text-slate-400 text-[10px] uppercase tracking-wide">Delivery para todo el Perú</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 group cursor-pointer">
+                            <i class="ph ph-phone text-yellow-400 text-2xl group-hover:scale-110 transition"></i>
+                            <div class="leading-tight">
+                                <div class="font-bold text-white text-sm">+51 932 321 295</div>
+                                <div class="text-slate-400 text-[10px] uppercase tracking-wide">Atención 9AM-6PM</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 md:gap-4 shrink-0">
+                    <button class="md:hidden p-2 text-slate-300 hover:text-white" onclick="document.getElementById('mobile-search-bar').classList.toggle('hidden')">
+                        <i class="ph ph-magnifying-glass text-2xl"></i>
+                    </button>
+
+                    <button onclick="userActions.handleProfileClick()" id="auth-header-btn" class="flex items-center gap-2 hover:text-yellow-400 transition">
+                        <div class="p-1.5 md:p-2 bg-slate-800 rounded-full border border-slate-700"><i class="ph ph-user text-xl"></i></div>
+                        <span class="text-xs font-bold hidden lg:block text-right leading-tight" id="auth-label">Mi Cuenta<br><span class="font-normal text-slate-400">Entrar / Registro</span></span>
+                    </button>
+                    
+                    <button onclick="cartManager.toggleCart()" class="relative group">
+                        <div class="p-1.5 md:p-2 bg-slate-800 rounded-full border border-slate-700 group-hover:bg-yellow-400 group-hover:text-slate-900 transition">
+                            <i class="ph ph-shopping-cart text-xl"></i>
+                        </div>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full opacity-0 transition-opacity border border-slate-900">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="mobile-search-bar" class="hidden mt-3 md:hidden pb-2">
+                <input type="text" id="mobile-search-input" class="w-full bg-slate-800 text-white border border-slate-700 rounded-lg py-2 px-4 focus:ring-1 focus:ring-yellow-400 outline-none text-sm" placeholder="Buscar productos...">
+            </div>
+        </div>
+
+        <div class="hidden lg:block border-t border-slate-800 bg-slate-900/95 backdrop-blur-sm">
+            <div class="w-full px-4 max-w-[1920px] mx-auto">
+                <ul class="flex items-center justify-center gap-8 text-sm font-medium h-12">
+                    <li><a href="#" onclick="event.preventDefault(); router.navigate('/')" class="text-slate-300 hover:text-yellow-400 transition uppercase tracking-wide text-xs font-bold">Inicio</a></li>
+                    <li><a href="#" onclick="event.preventDefault(); router.navigate('/shop')" class="text-slate-300 hover:text-yellow-400 transition uppercase tracking-wide text-xs font-bold flex items-center gap-1">Tienda & Categorías <i class="ph-bold ph-arrow-right"></i></a></li>
+                    <li><a href="#" onclick="event.preventDefault(); router.navigate('/faq')" class="text-slate-300 hover:text-yellow-400 transition uppercase tracking-wide text-xs font-bold">Ayuda</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <div id="mobile-menu" class="fixed inset-0 z-[60] hidden lg:hidden">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" onclick="uiManager.toggleMobileMenu()"></div>
+        <div class="absolute inset-y-0 left-0 w-4/5 max-w-xs bg-white shadow-2xl transform transition-transform duration-300 -translate-x-full" id="mobile-menu-panel">
+            <div class="flex flex-col h-full">
+                <div class="p-6 bg-slate-900 text-white flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <i class="ph-fill ph-circuitry text-yellow-400 text-2xl"></i>
+                        <span class="text-xl font-bold">Menú</span>
+                    </div>
+                    <button onclick="uiManager.toggleMobileMenu()"><i class="ph-bold ph-x text-2xl hover:text-yellow-400"></i></button>
+                </div>
+                <div class="bg-slate-100 p-4 border-b border-slate-200">
+                     <div class="flex items-center gap-3 mb-3">
+                        <i class="ph-fill ph-phone text-slate-600 text-xl"></i>
+                        <div class="text-xs font-bold text-slate-700">+51 932 321 295</div>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto py-4">
+                    <nav class="space-y-1 px-2">
+                        <a href="#" onclick="uiManager.mobileNavigate('/')" class="flex items-center px-4 py-3 text-base font-medium text-slate-900 rounded-lg hover:bg-slate-100"><i class="ph-bold ph-house mr-3 text-yellow-500"></i> Inicio</a>
+                        <a href="#" onclick="uiManager.mobileNavigate('/shop')" class="flex items-center px-4 py-3 text-base font-medium text-slate-900 rounded-lg hover:bg-slate-100"><i class="ph-bold ph-storefront mr-3 text-yellow-500"></i> Tienda Completa</a>
+                    </nav>
+                </div>
+                <div class="p-4 border-t border-slate-200 bg-slate-50">
+                    <button onclick="userActions.handleProfileClick(); uiManager.toggleMobileMenu()" class="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 transition">
+                        <i class="ph-bold ph-user mr-2"></i> Mi Cuenta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main id="app" class="flex-grow w-full fade-in min-h-[60vh]"></main>
+
+    <footer id="main-footer" class="bg-white border-t border-slate-200 pt-12 pb-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left mb-8">
+            <div>
+                <div class="flex items-center justify-center md:justify-start mb-4">
+                    <i class="ph-fill ph-circuitry text-slate-800 text-2xl mr-2"></i>
+                    <h3 class="font-bold text-xl">TechSaul</h3>
+                </div>
+                <p class="text-slate-500 text-sm mb-4">Tecnología premium al alcance de un clic. Envíos seguros y garantía en todos nuestros productos.</p>
+            </div>
+            <div>
+                <h4 class="font-bold text-slate-900 mb-4">Servicio al Cliente</h4>
+                <ul class="space-y-2 text-sm text-slate-500">
+                    <li><a href="#" onclick="event.preventDefault(); router.navigate('/faq')" class="hover:text-yellow-500 transition">Preguntas Frecuentes</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-slate-900 mb-4">Métodos de Pago</h4>
+                <div class="flex justify-center md:justify-start gap-2 mb-4">
+                    <div class="h-8 w-12 bg-slate-100 rounded border flex items-center justify-center font-bold text-xs">YAPE</div>
+                    <div class="h-8 w-12 bg-slate-100 rounded border flex items-center justify-center font-bold text-xs">PLIN</div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center border-t border-slate-100 pt-8 text-slate-400 text-sm">&copy; 2025 TechSaul E-Commerce.</div>
+    </footer>
+
+    <div id="cart-overlay" class="fixed inset-0 z-[90] hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity opacity-0" id="cart-backdrop" onclick="cartManager.toggleCart()"></div>
+        <div class="fixed inset-y-0 right-0 pl-0 md:pl-10 max-w-full flex">
+            <div class="w-full md:w-screen md:max-w-md transform transition ease-in-out duration-500 translate-x-full" id="cart-panel">
+                <div class="h-full flex flex-col bg-white shadow-2xl">
+                    <div class="flex-1 py-6 overflow-y-auto px-4 sm:px-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2"><i class="ph-bold ph-shopping-cart text-yellow-500"></i> Tu Carrito</h2>
+                            <button class="p-2 bg-slate-100 rounded-full hover:bg-red-100 hover:text-red-500 transition" onclick="cartManager.toggleCart()"><i class="ph-bold ph-x"></i></button>
+                        </div>
+                        <div id="cart-items-container" class="mt-4 space-y-4"></div>
+                    </div>
+                    <div class="border-t border-slate-100 py-6 px-6 bg-slate-50">
+                        <div class="flex justify-between text-lg font-bold text-slate-900 mb-4"><p>Total</p><p id="cart-total">$0.00</p></div>
+                        <button onclick="userActions.checkout()" class="w-full bg-yellow-400 text-slate-900 font-bold py-4 rounded-xl hover:bg-yellow-300 shadow-lg transition transform active:scale-95">Pagar Ahora</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="checkout-modal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-sm transition-opacity" onclick="checkoutManager.close()"></div>
+        <div class="fixed inset-y-0 right-0 w-full md:w-[600px] bg-white shadow-2xl transform transition-transform duration-300 translate-x-full flex flex-col" id="checkout-panel">
+            
+            <div class="p-6 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2"><i class="ph-bold ph-lock-key text-yellow-500"></i> Finalizar Compra</h2>
+                <button onclick="checkoutManager.close()" class="p-2 hover:bg-slate-200 rounded-full transition"><i class="ph-bold ph-x"></i></button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-6 md:p-8 space-y-8" id="checkout-content">
+                
+                <form id="billing-form" class="space-y-4">
+                    <h3 class="font-bold text-lg border-b pb-2 mb-4">1. Detalles de Facturación</h3>
+                    
+                    <div><label class="text-xs font-bold text-slate-500">Nombre Completo *</label><input type="text" id="bill-name" class="w-full p-3 border rounded-lg bg-slate-50" required></div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-xs font-bold text-slate-500">DNI *</label><input type="tel" id="bill-dni" class="w-full p-3 border rounded-lg bg-slate-50" required maxlength="8"></div>
+                        <div><label class="text-xs font-bold text-slate-500">Teléfono *</label><input type="tel" id="bill-phone" class="w-full p-3 border rounded-lg bg-slate-50" required></div>
+                    </div>
+
+                    <div><label class="text-xs font-bold text-slate-500">RUC (Opcional)</label><input type="tel" id="bill-ruc" class="w-full p-3 border rounded-lg bg-slate-50" maxlength="11"></div>
+
+                    <div><label class="text-xs font-bold text-slate-500">Departamento *</label>
+                        <select id="bill-dept" class="w-full p-3 border rounded-lg bg-slate-50" required>
+                            <option value="">Seleccione...</option>
+                            <option value="Lima">Lima</option><option value="Arequipa">Arequipa</option><option value="Cusco">Cusco</option><option value="La Libertad">La Libertad</option><option value="Piura">Piura</option><option value="Otro">Otro (Provincia)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="text-xs font-bold text-slate-500">Provincia *</label><input type="text" id="bill-prov" class="w-full p-3 border rounded-lg bg-slate-50" required></div>
+                        <div><label class="text-xs font-bold text-slate-500">Distrito *</label><input type="text" id="bill-dist" class="w-full p-3 border rounded-lg bg-slate-50" required></div>
+                    </div>
+
+                    <div class="bg-blue-50 p-4 rounded-xl flex items-start gap-3">
+                        <i class="ph-fill ph-truck text-blue-600 text-xl mt-1"></i>
+                        <div class="text-sm text-blue-800">
+                            <strong>Tiempo de entrega estimado:</strong><br>Lima: 24-48 horas.<br>Provincias: 2 a 4 días hábiles.
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 py-2">
+                        <input type="checkbox" id="terms-check" class="w-5 h-5 accent-slate-900" required>
+                        <label for="terms-check" class="text-sm text-slate-600 select-none">He leído y acepto los <a href="#" class="underline font-bold">términos y condiciones</a> *</label>
+                    </div>
+
+                    <button type="button" onclick="checkoutManager.goToPayment()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg mt-4">Continuar al Pago <i class="ph-bold ph-arrow-right ml-2"></i></button>
+                </form>
+
+                <div id="payment-section" class="hidden text-center space-y-6">
+                    <div class="bg-white p-6 rounded-2xl border-2 border-slate-900 inline-block shadow-xl relative mt-4">
+                        <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full border border-slate-900">ESCANEA EL QR PAYPAL</div>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PAYPAL-TRANSFER-TECHSAUL" class="w-48 h-48 mx-auto mix-blend-multiply">
+                        <p class="text-xs font-bold mt-2 text-slate-500">YAPE / PLIN / PAYPAL</p>
+                    </div>
+
+                    <div class="text-left bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <label class="text-xs font-bold text-slate-500 block mb-2">Código de Seguridad YAPE (3 Dígitos) *</label>
+                        <input type="password" id="payment-code" class="w-full p-4 text-center text-2xl tracking-[1em] font-bold border-2 border-slate-300 rounded-xl focus:border-yellow-400 outline-none bg-white" maxlength="3" placeholder="•••">
+                        <p class="text-[10px] text-slate-400 mt-2 text-center">Ingresa el código que aparece en tu comprobante</p>
+                    </div>
+
+                    <button onclick="checkoutManager.confirmOrder()" class="w-full bg-yellow-400 text-slate-900 py-4 rounded-xl font-bold hover:bg-yellow-300 transition shadow-lg transform active:scale-95 text-lg">CONFIRMAR PAGO (QR)</button>
+                    
+                    <div class="relative flex py-2 items-center">
+                        <div class="flex-grow border-t border-slate-200"></div>
+                        <span class="flex-shrink-0 mx-4 text-slate-400 text-xs font-bold">O</span>
+                        <div class="flex-grow border-t border-slate-200"></div>
+                    </div>
+
+                    <button onclick="checkoutManager.confirmWhatsAppOrder()" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold hover:bg-green-600 transition shadow-lg transform active:scale-95 text-lg flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-whatsapp text-2xl"></i> OTRO MÉTODO DE PAGO
+                    </button>
+                </div>
+
+                <div id="success-section" class="hidden text-center py-10">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"><i class="ph-fill ph-check text-4xl text-green-600"></i></div>
+                    <h3 class="text-2xl font-bold text-slate-900 mb-2">¡Pedido Registrado!</h3>
+                    <p class="text-slate-500 mb-8">Hemos generado tu voucher. Tienes 10 minutos para que validemos tu pago.</p>
+                    
+                    <button onclick="checkoutManager.downloadPDF()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold mb-3 flex items-center justify-center gap-2"><i class="ph-bold ph-file-pdf"></i> Descargar Voucher</button>
+                    
+                    <a id="whatsapp-link" href="#" target="_blank" class="w-full bg-[#25D366] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#20bd5a] transition shadow-lg mb-3"><i class="ph-fill ph-whatsapp text-xl"></i> Enviar Comprobante</a>
+
+                    <button onclick="checkoutManager.close(); router.navigate('/profile', {tab: 'orders'})" class="w-full border-2 border-slate-900 text-slate-900 py-3 rounded-xl font-bold hover:bg-slate-50 transition">VER PEDIDO</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+  <script>
+        (async function() {
+            // ESTE ES TU ENLACE YA CONFIGURADO CORRECTAMENTE:
+            const SCRIPT_URL = 'https://cdn.jsdelivr.net/gh/sysaccessvip/TESTSAUL@main/script.js'; 
+
+            try {
+                const response = await fetch(SCRIPT_URL);
+                if (!response.ok) throw new Error("Error cargando el sistema");
+                const code = await response.text();
+
+                const blob = new Blob([code], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+
+                const script = document.createElement('script');
+                script.type = 'module'; 
+                script.src = url;
+                
+                script.onload = () => {
+                    URL.revokeObjectURL(url); 
+                    console.log("Tienda TechSaul cargada correctamente.");
+                };
+
+                document.body.appendChild(script);
+
+            } catch (error) {
+                console.error("Fallo al cargar:", error);
+                document.body.innerHTML = "<h1 style='text-align:center; margin-top:50px;'>Error de conexión. Por favor recarga la página.</h1>";
+            }
+        })();
+    </script>
+</body>
+</html>
