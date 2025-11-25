@@ -1,21 +1,20 @@
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-        .banner-row-header { cursor: pointer; transition: background-color 0.2s; }
-        .banner-row-header:hover { background-color: #f8fafc; }
-        .banner-row-body { display: none; border-top: 1px solid #e2e8f0; background-color: #f8fafc; }
-        .banner-card.open .banner-row-body { display: block; }
-        .banner-card.open .icon-caret { transform: rotate(180deg); }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        /* Scrollbar sutil */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+.banner-row-header { cursor: pointer; transition: background-color 0.2s; }
+.banner-row-header:hover { background-color: #f8fafc; }
+.banner-row-body { display: none; border-top: 1px solid #e2e8f0; background-color: #f8fafc; }
+.banner-card.open .banner-row-body { display: block; }
+.banner-card.open .icon-caret { transform: rotate(180deg); }
+.fade-in { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Busca esto en tu <style> y REEMPLÁZALO por este bloque nuevo: */
+/* Scrollbar sutil */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
+/* Toggle checkbox personalizado */
 .toggle-checkbox:checked {
-    transform: translateX(100%); /* ESTA LÍNEA ES LA CLAVE: mueve la bolita */
+    transform: translateX(100%);
     border-color: #10b981;
 }
 
