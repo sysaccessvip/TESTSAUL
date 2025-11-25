@@ -22,7 +22,8 @@
 
         window.firebaseModules = { initializeApp, getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, getDatabase, ref, set, get, remove, onValue, push, update };
    
-   
+           const { initializeApp, getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, getDatabase, ref, set, get, remove, onValue, push, update } = window.firebaseModules;
+
     
  const firebaseConfig = {
   apiKey: "AIzaSyCO1IIYJ8T2ksWDnu_DisIZ0KXkhn2gh3w",
