@@ -1,23 +1,73 @@
-body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-.banner-row-header { cursor: pointer; transition: background-color 0.2s; }
-.banner-row-header:hover { background-color: #f8fafc; }
-.banner-row-body { display: none; border-top: 1px solid #e2e8f0; background-color: #f8fafc; }
-.banner-card.open .banner-row-body { display: block; }
-.banner-card.open .icon-caret { transform: rotate(180deg); }
-.fade-in { animation: fadeIn 0.3s ease-in-out; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Scrollbar sutil */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Toggle checkbox personalizado */
-.toggle-checkbox:checked {
-    transform: translateX(100%);
-    border-color: #10b981;
-}
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-.toggle-checkbox:checked + .toggle-label {
-    background-color: #10b981;
-}
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] summary ~ * { animation: sweep .3s ease-in-out; }
+        @keyframes sweep { 0% { opacity: 0; transform: translateY(-5px); } 100% { opacity: 1; transform: translateY(0); } }
+        
+        .profile-banner { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+
+        .splash-fade-out { animation: fadeOut 0.5s ease-in-out forwards; pointer-events: none; }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        
+        @keyframes loadingBar { 0% { width: 0%; } 50% { width: 60%; } 100% { width: 100%; } }
+        .animate-load-bar { animation: loadingBar 2s ease-in-out infinite; }
+
+        /* Animación para el Carrusel de Ofertas */
+        @keyframes scrollLeft {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        
+        .animate-infinite-scroll {
+            display: flex;
+            width: max-content;
+            animation: scrollLeft 40s linear infinite;
+        }
+
+        .animate-infinite-scroll:hover {
+            animation-play-state: paused;
+        }
+
+        /* Estilos para el Zoom de Producto */
+        .zoom-container {
+            overflow: hidden;
+            cursor: crosshair; 
+        }
+
+        .zoom-img {
+            transition: transform 0.2s ease-out;
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        .zoom-container:hover .zoom-img {
+            transition: transform 0.1s ease-out; 
+        }
+
+        /* Animación de "Sacudida" para el carrito */
+        @keyframes cart-tada {
+            0% { transform: scale(1); }
+            10%, 20% { transform: scale(0.9) rotate(-3deg); }
+            30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+            40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+
+        .hover-cart-animate:hover i {
+            animation: cart-tada 0.8s ease-in-out;
+        }
